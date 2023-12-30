@@ -24,21 +24,21 @@ jobs:
       shell: pwsh
       run: |
         $data = Get-Content -Path .\src/lemniscat/plugin/terraform/plugin.yaml -Raw
-        $data = $data -replace "version: '0.0.1'"", "version: '$($env:GitVersion_SemVer)'"
+        $data = $data -replace "version: '0.0.1'", "version: '$($env:GitVersion_SemVer)'"
         $data | Set-Content -Path .\src/lemniscat/plugin/terraform/plugin.yaml
     - name: Set version in pyproject.toml for main branch
       shell: pwsh
       if: github.ref == 'refs/heads/main'
       run: |
         $data = Get-Content -Path .\pyproject.toml -Raw
-        $data = $data -replace 'version = ".*"', "version = ""$($env:GitVersion_MajorMinorPatch)"""
+        $data = $data -replace 'version = "0.0.1"', "version = ""$($env:GitVersion_MajorMinorPatch)"""
         $data | Set-Content -Path .\pyproject.toml
     - name: Set version in pyproject.toml for feat/fix branch
       shell: pwsh
       if: startsWith(github.ref, 'refs/heads/feat/') || startsWith(github.ref, 'refs/heads/fix/')
       run: |
         $data = Get-Content -Path .\pyproject.toml -Raw
-        $data = $data -replace 'version = ".*"', "version = ""$($env:GitVersion_AssemblySemFileVer)"""
+        $data = $data -replace 'version = "0.0.1"', "version = ""$($env:GitVersion_AssemblySemFileVer)"""
         $data | Set-Content -Path .\pyproject.toml
     - name: Set up Python
       uses: actions/setup-python@v4

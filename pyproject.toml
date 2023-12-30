@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lemniscat.plugin.terraform"
-version = ".*"
+version = "0.0.1"
 authors = [
   { name="Philippe MORISSEAU", email="philippe.morisseau@outlook.com" },
 ]
