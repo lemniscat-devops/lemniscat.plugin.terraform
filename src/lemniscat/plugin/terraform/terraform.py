@@ -93,7 +93,7 @@ class Terraform(object):
 
         return wrapper
 
-    def apply(self, dir_or_plan=None, input=False, skip_plan=False, no_color=IsFlagged,
+    def apply(self, dir_or_plan=None, input=False, skip_plan=False, no_color=IsNotFlagged,
               **kwargs):
         """
         refer to https://terraform.io/docs/commands/apply.html
@@ -110,6 +110,12 @@ class Terraform(object):
         default['no_color'] = no_color
         default['auto-approve'] = (skip_plan == True)
         option_dict = self._generate_default_options(default)
+        if(skip_plan == False):
+            if(option_dict.keys().__contains__('var')):
+                option_dict.pop('var')
+            if(option_dict.keys().__contains__('var_file')):
+                option_dict.pop('var_file')
+                     
         args = self._generate_default_args(dir_or_plan)
         return self.cmd('apply', *args, **option_dict)
 
@@ -123,7 +129,7 @@ class Terraform(object):
         option_dict['var'] = self.variables
         option_dict['var_file'] = self.var_file
         option_dict['parallelism'] = self.parallelism
-        option_dict['no_color'] = IsFlagged
+        option_dict['no_color'] = IsNotFlagged
         option_dict['input'] = False
         option_dict.update(input_options)
         return option_dict
@@ -135,7 +141,7 @@ class Terraform(object):
         :return: ret_code, stdout, stderr
         """
         default = kwargs
-        default['force'] = force
+        default['auto-approve'] = force
         options = self._generate_default_options(default)
         args = self._generate_default_args(dir_or_plan)
         return self.cmd('destroy', *args, **options)
@@ -306,7 +312,7 @@ class Terraform(object):
         out, err = p.communicate()
         ret_code = p.returncode
 
-        if ret_code == 0:
+        if ret_code == 0 or ret_code == 2:
             self.read_state_file()
         else:
             subProcessErrors = list(filter(lambda x: x != "",err.decode('utf-8').splitlines()))
