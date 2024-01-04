@@ -68,6 +68,9 @@ class Action(PluginCore):
                 result = tf.plan(out=self.set_tfplan_file(variables, parameters))
             elif(command == 'apply'):
                 result = tf.apply(dir_or_plan=self.set_tfplan_file(variables, parameters))
+                if(result[0] == 0):
+                    outputs = tf.output()
+                    
             elif(command == 'destroy'):
                 result = tf.destroy()
             

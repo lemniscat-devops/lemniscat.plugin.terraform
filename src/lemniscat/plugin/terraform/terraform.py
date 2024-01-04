@@ -364,7 +364,7 @@ class Terraform(object):
         if not kwargs.get('capture_output', True) is True:
           raise ValueError('capture_output is required for this method')
 
-        ret, out, err = self.output_cmd(*args, **kwargs)
+        ret, out, err = self.cmd('output', *args, **kwargs)
 
         if ret != 0:
             return None
