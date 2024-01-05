@@ -77,7 +77,7 @@ class Action(PluginCore):
             elif(command == 'destroy'):
                 result = tf.destroy()
             
-            if(result[0] != 0):
+            if(result[0] != 0 and result[0] != 2):
                 return TaskResult(
                     name=f'Terraform {command}',
                     status='Failed',
