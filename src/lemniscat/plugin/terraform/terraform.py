@@ -7,6 +7,7 @@ import sys
 import json
 import logging
 import tempfile
+from typing import Optional
 
 from lemniscat.plugin.terraform.tfstate import Tfstate
 
@@ -280,6 +281,7 @@ class Terraform(object):
         """
         capture_output = kwargs.pop('capture_output', True)
         raise_on_error = kwargs.pop('raise_on_error', False)
+        disable_logs = kwargs.pop('disable_logs', False)
         if capture_output is True:
             stderr = subprocess.PIPE
             stdout = subprocess.PIPE
@@ -303,11 +305,18 @@ class Terraform(object):
         if not synchronous:
             return p, None, None
 
-        while p.poll() is None:
-            line = p.stdout.readline()
-            if(line != b''):
-                ltrace = line.decode('utf-8').replace('\n', '')
-                log.debug(f'  {ltrace}')
+        if(disable_logs is False):
+            while p.poll() is None:
+                line = p.stdout.readline()
+                if(line != b''):
+                    ltrace = line.decode('utf-8').replace('\n', '')
+                    
+                    # hide the outputs of terraform apply
+                    if(ltrace == 'Outputs:'):
+                        disable_logs = True
+                        
+                    if(disable_logs is False):
+                        log.debug(f'  {ltrace}')
 
         out, err = p.communicate()
         ret_code = p.returncode
@@ -334,7 +343,7 @@ class Terraform(object):
 
         return ret_code, out, err
 
-    def output(self, *args, **kwargs):
+    def output(self, prefix: str=None, *args, **kwargs) -> Optional[dict]:
         """
         https://www.terraform.io/docs/commands/output.html
 
@@ -361,6 +370,7 @@ class Terraform(object):
         full_value = kwargs.pop('full_value', False)
         name_provided = (len(args) > 0)
         kwargs['json'] = IsFlagged
+        kwargs['disable_logs'] = IsFlagged
         if not kwargs.get('capture_output', True) is True:
           raise ValueError('capture_output is required for this method')
 
@@ -371,12 +381,20 @@ class Terraform(object):
 
         out = out.lstrip()
 
-        value = json.loads(out)
-
+        values = json.loads(out)
+        
         if name_provided and not full_value:
-            value = value['value']
+            values = values['value']
 
-        return value
+        # append prefix to the key if prefix is provided
+        outputs = {}
+        if(prefix is not None):
+            for key, value in values.items():
+                outputs[f'{prefix}.{key}'] = value
+        else:
+            outputs = values
+
+        return outputs
 
     def read_state_file(self, file_path=None):
         """
