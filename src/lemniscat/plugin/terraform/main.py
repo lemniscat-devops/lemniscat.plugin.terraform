@@ -24,9 +24,19 @@ class Action(PluginCore):
         )
 
     @staticmethod
-    def set_backend_config(variables: dict) -> dict:
+    def set_backend_config(parameters: dict, variables: dict) -> dict:
         # set backend config
         backend_config = {}
+        #override configuration with backend configuration
+        if(parameters.keys().__contains__('backend')):
+            if(parameters['backend'].keys().__contains__('tfBackend')):
+                variables['tfBackend'] = parameters['backend']['tfBackend']
+            if(parameters['backend'].keys().__contains__('arm_access_key')):
+                variables['arm_access_key'] = parameters['backend']['arm_access_key']
+            if(parameters['backend'].keys().__contains__('container_name')):
+                variables['container_name'] = parameters['backend']['container_name']
+            if(parameters['backend'].keys().__contains__('storage_account_name')):
+                variables['storage_account_name'] = parameters['backend']['storage_account_name']
         if(variables['tfBackend'] == 'azurerm'):
             os.environ["ARM_ACCESS_KEY"] = variables["arm_access_key"]
             backend_config = {'storage_account_name': variables["storage_account_name"], 'container_name': variables["container_name"], 'key': variables["key"]}
@@ -54,7 +64,7 @@ class Action(PluginCore):
 
     def __run_terraform(self, command: str, parameters: dict, variables: dict) -> TaskResult:
         # launch terraform command
-        backendConfig = self.set_backend_config(variables)
+        backendConfig = self.set_backend_config(parameters, variables)
         
         # set terraform var file
         var_file = self.set_tf_var_file(variables, parameters)              

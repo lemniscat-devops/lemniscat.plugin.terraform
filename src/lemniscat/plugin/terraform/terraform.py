@@ -93,6 +93,7 @@ class Terraform(object):
             return self.cmd(cmd_name, *args, **kwargs)
 
         return wrapper
+        
 
     def apply(self, dir_or_plan=None, input=False, skip_plan=False, no_color=IsNotFlagged,
               **kwargs):
