@@ -63,6 +63,7 @@ class Action(PluginCore):
             if(not variables.keys().__contains__('arm_access_key')):
                 cli = AzureCli()
                 cli.run(variables["storage_account_name"])
+                super().appendVariables({ "arm_access_key": os.environ["ARM_ACCESS_KEY"]})
             else:
                 os.environ["ARM_ACCESS_KEY"] = variables["arm_access_key"]
             backend_config = {'storage_account_name': variables["storage_account_name"], 'container_name': variables["container_name"], 'key': variables["key"]}
