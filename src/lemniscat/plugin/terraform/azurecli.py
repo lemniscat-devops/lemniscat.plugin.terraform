@@ -40,23 +40,25 @@ class AzureCli:
                              cwd=None)
         
         while p.poll() is None:
-            lines = p.stdout.readlines()
-            errors = p.stderr.readlines()
-            for line in lines:
-                ltrace = line.decode('utf-8').rstrip('\r\n')
-                m = re.match(r"^\[lemniscat\.pushvar\] (?P<key>\w+)=(?P<value>.*)", str(ltrace))
-                if(not m is None):
-                    outputVar[m.group('key').strip()] = m.group('value').strip()
-                    if(m.group('key').strip() == "arm_access_key"):
-                        os.environ["ARM_ACCESS_KEY"] = m.group('value').strip()
-                else:
-                    log.debug(f'  {ltrace}')
-            for error in errors:
-                ltrace = error.decode("utf-8").rstrip("\r\n")
-                if(ltrace.startswith("ERROR:")):
-                    log.error(f'  {ltrace}')
-                else:
-                    log.warning(f'  {ltrace}')
+            if(p.stdout is not None):
+                lines = p.stdout.readlines()
+                for line in lines:
+                    ltrace = line.decode('utf-8').rstrip('\r\n')
+                    m = re.match(r"^\[lemniscat\.pushvar\] (?P<key>\w+)=(?P<value>.*)", str(ltrace))
+                    if(not m is None):
+                        outputVar[m.group('key').strip()] = m.group('value').strip()
+                        if(m.group('key').strip() == "arm_access_key"):
+                            os.environ["ARM_ACCESS_KEY"] = m.group('value').strip()
+                    else:
+                        log.debug(f'  {ltrace}')
+            if(p.stderr is not None):
+                errors = p.stderr.readlines()
+                for error in errors:
+                    ltrace = error.decode("utf-8").rstrip("\r\n")
+                    if(ltrace.startswith("ERROR:")):
+                        log.error(f'  {ltrace}')
+                    else:
+                        log.warning(f'  {ltrace}')
                           
         out, err = p.communicate()
         ret_code = p.returncode
