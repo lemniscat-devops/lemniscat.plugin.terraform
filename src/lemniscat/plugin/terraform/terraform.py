@@ -391,9 +391,10 @@ class Terraform(object):
         outputs = {}
         if(prefix is not None):
             for key, value in values.items():
-                outputs[f'{prefix}.{key}'] = value
+                outputs[f'{prefix}.{key}'] = value.value
         else:
-            outputs = values
+            for key, value in values.items():
+                outputs[f'{key}'] = value.value
 
         return outputs
 
