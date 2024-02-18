@@ -7,6 +7,7 @@ from logging import Logger
 from lemniscat.core.contract.engine_contract import PluginCore
 from lemniscat.core.model.models import Meta, TaskResult
 from lemniscat.core.util.helpers import FileSystem, LogUtil
+from lemniscat.plugin.terraform.azurecli import AzureCli
 
 from lemniscat.plugin.terraform.terraform import Terraform
 
@@ -38,7 +39,11 @@ class Action(PluginCore):
             if(parameters['backend'].keys().__contains__('storage_account_name')):
                 variables['storage_account_name'] = parameters['backend']['storage_account_name']
         if(variables['tfBackend'] == 'azurerm'):
-            os.environ["ARM_ACCESS_KEY"] = variables["arm_access_key"]
+            if(not variables.keys().__contains__('arm_access_key')):
+                cli = AzureCli()
+                cli.run(variables["storage_account_name"])
+            else:
+                os.environ["ARM_ACCESS_KEY"] = variables["arm_access_key"]
             backend_config = {'storage_account_name': variables["storage_account_name"], 'container_name': variables["container_name"], 'key': variables["key"]}
         return backend_config
     
