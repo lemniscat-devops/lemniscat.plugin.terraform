@@ -4,6 +4,7 @@ import ast
 import logging
 import os
 from logging import Logger
+import re
 from lemniscat.core.contract.engine_contract import PluginCore
 from lemniscat.core.model.models import Meta, TaskResult
 from lemniscat.core.util.helpers import FileSystem, LogUtil
@@ -11,6 +12,7 @@ from lemniscat.plugin.terraform.azurecli import AzureCli
 
 from lemniscat.plugin.terraform.terraform import Terraform
 
+_REGEX_CAPTURE_VARIABLE = r"(?:\${{(?P<var>[^}]+)}})"
 
 class Action(PluginCore):
 
@@ -23,28 +25,48 @@ class Action(PluginCore):
             description=manifest_data['description'],
             version=manifest_data['version']
         )
+        
+    def __interpret(self, parameterValue: str, variables: dict) -> str:
+        if(script is None):
+            return None
+        if(isinstance(script, str)):
+            matches = re.findall(_REGEX_CAPTURE_VARIABLE, script)
+            if(len(matches) > 0):
+                for match in matches:
+                    var = str.strip(match)
+                    if(var in variables):
+                        script = script.replace(f'${{{{{match}}}}}', variables[var])
+                        self._logger.debug(f"Interpreting variable: {var} -> {variables[var]}")
+                    else:
+                        script = script.replace(f'${{{{{match}}}}}', "")
+                        self._logger.debug(f"Variable not found: {var}. Replaced by empty string.")
+        return parameterValue 
 
-    @staticmethod
-    def set_backend_config(parameters: dict, variables: dict) -> dict:
+    def set_backend_config(self, parameters: dict, variables: dict) -> dict:
         # set backend config
         backend_config = {}
         #override configuration with backend configuration
         if(parameters.keys().__contains__('backend')):
-            if(parameters['backend'].keys().__contains__('tfBackend')):
-                variables['tfBackend'] = parameters['backend']['tfBackend']
+            if(parameters['backend'].keys().__contains__('backend_type')):
+                variables['backend_type'] = self.__interpret(parameters['backend']['backend_type'], variables)
             if(parameters['backend'].keys().__contains__('arm_access_key')):
-                variables['arm_access_key'] = parameters['backend']['arm_access_key']
+                variables['arm_access_key'] = self.__interpret(parameters['backend']['arm_access_key'], variables)
             if(parameters['backend'].keys().__contains__('container_name')):
-                variables['container_name'] = parameters['backend']['container_name']
+                variables['container_name'] = self.__interpret(parameters['backend']['container_name'], variables)
             if(parameters['backend'].keys().__contains__('storage_account_name')):
-                variables['storage_account_name'] = parameters['backend']['storage_account_name']
-        if(variables['tfBackend'] == 'azurerm'):
+                variables['storage_account_name'] = self.__interpret(parameters['backend']['storage_account_name'], variables)
+            if(parameters['backend'].keys().__contains__('key')):
+                variables['key'] = self.__interpret(parameters['backend']['key'], variables)
+                
+        # set backend config for azure
+        if(variables['backend_type'] == 'azurerm'):
             if(not variables.keys().__contains__('arm_access_key')):
                 cli = AzureCli()
                 cli.run(variables["storage_account_name"])
             else:
                 os.environ["ARM_ACCESS_KEY"] = variables["arm_access_key"]
             backend_config = {'storage_account_name': variables["storage_account_name"], 'container_name': variables["container_name"], 'key': variables["key"]}
+            
         return backend_config
     
     @staticmethod
