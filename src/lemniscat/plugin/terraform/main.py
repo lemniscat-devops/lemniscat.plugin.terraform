@@ -27,18 +27,18 @@ class Action(PluginCore):
         )
         
     def __interpret(self, parameterValue: str, variables: dict) -> str:
-        if(script is None):
+        if(parameterValue is None):
             return None
-        if(isinstance(script, str)):
-            matches = re.findall(_REGEX_CAPTURE_VARIABLE, script)
+        if(isinstance(parameterValue, str)):
+            matches = re.findall(_REGEX_CAPTURE_VARIABLE, parameterValue)
             if(len(matches) > 0):
                 for match in matches:
                     var = str.strip(match)
                     if(var in variables):
-                        script = script.replace(f'${{{{{match}}}}}', variables[var])
+                        parameterValue = parameterValue.replace(f'${{{{{match}}}}}', variables[var])
                         self._logger.debug(f"Interpreting variable: {var} -> {variables[var]}")
                     else:
-                        script = script.replace(f'${{{{{match}}}}}', "")
+                        parameterValue = parameterValue.replace(f'${{{{{match}}}}}', "")
                         self._logger.debug(f"Variable not found: {var}. Replaced by empty string.")
         return parameterValue 
 
