@@ -48,25 +48,25 @@ class Action(PluginCore):
         #override configuration with backend configuration
         if(parameters.keys().__contains__('backend')):
             if(parameters['backend'].keys().__contains__('backend_type')):
-                variables['backend_type'] = self.__interpret(parameters['backend']['backend_type'], variables)
+                variables['tf.backend_type'] = self.__interpret(parameters['backend']['backend_type'], variables)
             if(parameters['backend'].keys().__contains__('arm_access_key')):
-                variables['arm_access_key'] = self.__interpret(parameters['backend']['arm_access_key'], variables)
+                variables['tf.arm_access_key'] = self.__interpret(parameters['backend']['arm_access_key'], variables)
             if(parameters['backend'].keys().__contains__('container_name')):
-                variables['container_name'] = self.__interpret(parameters['backend']['container_name'], variables)
+                variables['tf.container_name'] = self.__interpret(parameters['backend']['container_name'], variables)
             if(parameters['backend'].keys().__contains__('storage_account_name')):
-                variables['storage_account_name'] = self.__interpret(parameters['backend']['storage_account_name'], variables)
+                variables['tf.storage_account_name'] = self.__interpret(parameters['backend']['storage_account_name'], variables)
             if(parameters['backend'].keys().__contains__('key')):
-                variables['key'] = self.__interpret(parameters['backend']['key'], variables)
+                variables['tf.key'] = self.__interpret(parameters['backend']['key'], variables)
                 
         # set backend config for azure
-        if(variables['backend_type'] == 'azurerm'):
-            if(not variables.keys().__contains__('arm_access_key')):
+        if(variables['tf.backend_type'] == 'azurerm'):
+            if(not variables.keys().__contains__('tf.arm_access_key')):
                 cli = AzureCli()
-                cli.run(variables["storage_account_name"])
-                super().appendVariables({ "arm_access_key": os.environ["ARM_ACCESS_KEY"]})
+                cli.run(variables["tf.storage_account_name"])
             else:
-                os.environ["ARM_ACCESS_KEY"] = variables["arm_access_key"]
-            backend_config = {'storage_account_name': variables["storage_account_name"], 'container_name': variables["container_name"], 'key': variables["key"]}
+                os.environ["ARM_ACCESS_KEY"] = variables["tf.arm_access_key"]
+            super().appendVariables({ "tf.arm_access_key": os.environ["ARM_ACCESS_KEY"], 'tf.storage_account_name': variables["tf.storage_account_name"], 'tf.container_name': variables["tf.container_name"], 'tf.key': variables["tf.key"] })
+            backend_config = {'storage_account_name': variables["tf.storage_account_name"], 'container_name': variables["tf.container_name"], 'key': variables["tf.key"]}
             
         return backend_config
     
