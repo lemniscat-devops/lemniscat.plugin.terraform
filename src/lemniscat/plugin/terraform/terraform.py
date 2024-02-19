@@ -12,6 +12,7 @@ from typing import Optional
 from lemniscat.plugin.terraform.tfstate import Tfstate
 
 from lemniscat.core.util.helpers import LogUtil
+from lemniscat.core.model.models import VariableValue
 
 
 try:  # Python 2.7+
@@ -391,10 +392,10 @@ class Terraform(object):
         outputs = {}
         if(prefix is not None):
             for key, value in values.items():
-                outputs[f'{prefix}.{key}'] = value['value']
+                outputs[f'{prefix}.{key}'] = VariableValue(value['value'], value['sensitive'] == 'true')
         else:
             for key, value in values.items():
-                outputs[f'{key}'] = value['value']
+                outputs[f'{key}'] = VariableValue(value['value'], value['sensitive'] == 'true')
 
         return outputs
 

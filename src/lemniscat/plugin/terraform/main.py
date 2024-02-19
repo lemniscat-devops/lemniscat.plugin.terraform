@@ -6,7 +6,7 @@ import os
 from logging import Logger
 import re
 from lemniscat.core.contract.engine_contract import PluginCore
-from lemniscat.core.model.models import Meta, TaskResult
+from lemniscat.core.model.models import Meta, TaskResult, VariableValue
 from lemniscat.core.util.helpers import FileSystem, LogUtil
 from lemniscat.plugin.terraform.azurecli import AzureCli
 
@@ -27,6 +27,7 @@ class Action(PluginCore):
         )
         
     def __interpret(self, parameterValue: str, variables: dict) -> str:
+        isSensible = False
         if(parameterValue is None):
             return None
         if(isinstance(parameterValue, str)):
@@ -35,12 +36,14 @@ class Action(PluginCore):
                 for match in matches:
                     var = str.strip(match)
                     if(var in variables):
-                        parameterValue = parameterValue.replace(f'${{{{{match}}}}}', variables[var])
+                        parameterValue = parameterValue.replace(f'${{{{{match}}}}}', variables[var].value)
+                        if(variables[var].sensitive):
+                            isSensible = True
                         self._logger.debug(f"Interpreting variable: {var} -> {variables[var]}")
                     else:
                         parameterValue = parameterValue.replace(f'${{{{{match}}}}}', "")
                         self._logger.debug(f"Variable not found: {var}. Replaced by empty string.")
-        return parameterValue 
+        return VariableValue(parameterValue, isSensible) 
 
     def set_backend_config(self, parameters: dict, variables: dict) -> dict:
         # set backend config
@@ -59,14 +62,14 @@ class Action(PluginCore):
                 variables['tf.key'] = self.__interpret(parameters['backend']['key'], variables)
                 
         # set backend config for azure
-        if(variables['tf.backend_type'] == 'azurerm'):
+        if(variables['tf.backend_type'].value == 'azurerm'):
             if(not variables.keys().__contains__('tf.arm_access_key')):
                 cli = AzureCli()
-                cli.run(variables["tf.storage_account_name"])
+                cli.run(variables["tf.storage_account_name"].value)
             else:
-                os.environ["ARM_ACCESS_KEY"] = variables["tf.arm_access_key"]
-            super().appendVariables({ "tf.arm_access_key": os.environ["ARM_ACCESS_KEY"], 'tf.storage_account_name': variables["tf.storage_account_name"], 'tf.container_name': variables["tf.container_name"], 'tf.key': variables["tf.key"] })
-            backend_config = {'storage_account_name': variables["tf.storage_account_name"], 'container_name': variables["tf.container_name"], 'key': variables["tf.key"]}
+                os.environ["ARM_ACCESS_KEY"] = variables["tf.arm_access_key"].value
+            super().appendVariables({ "tf.arm_access_key": VariableValue(os.environ["ARM_ACCESS_KEY"], True), 'tf.storage_account_name': variables["tf.storage_account_name"], 'tf.container_name': variables["tf.container_name"], 'tf.key': variables["tf.key"] })
+            backend_config = {'storage_account_name': variables["tf.storage_account_name"].value, 'container_name': variables["tf.container_name"].value, 'key': variables["tf.key"].value}
             
         return backend_config
     
@@ -75,7 +78,7 @@ class Action(PluginCore):
         # set terraform var file
         var_file = None
         if(variables.keys().__contains__('tfVarFile')):
-            var_file = variables['tfVarfile']
+            var_file = variables['tfVarfile'].value
         if(parameters.keys().__contains__('tfVarFile')):
             var_file = parameters['tfVarFile']   
         return var_file
@@ -85,7 +88,7 @@ class Action(PluginCore):
         # set terraform var file
         tfplan_file = './terrafom.tfplan'
         if(variables.keys().__contains__('tfplanFile')):
-            tfplan_file = variables['tfplanFile']
+            tfplan_file = variables['tfplanFile'].value
         if(parameters.keys().__contains__('tfplanFile')):
             tfplan_file = parameters['tfplanFile']   
         return tfplan_file
@@ -162,5 +165,10 @@ def __init_cli() -> argparse:
 if __name__ == "__main__":
     logger = LogUtil.create()
     action = Action(logger)
-    __cli_args = __init_cli().parse_args()   
-    action.invoke(ast.literal_eval(__cli_args.parameters), ast.literal_eval(__cli_args.variables))
+    __cli_args = __init_cli().parse_args()
+    variables = {}   
+    vars = ast.literal_eval(__cli_args.variables)
+    for key in vars:
+        variables[key] = VariableValue(vars[key])
+    
+    action.invoke(ast.literal_eval(__cli_args.parameters), variables)
