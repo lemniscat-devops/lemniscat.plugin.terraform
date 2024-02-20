@@ -392,10 +392,10 @@ class Terraform(object):
         outputs = {}
         if(prefix is not None):
             for key, value in values.items():
-                outputs[f'{prefix}.{key}'] = VariableValue(value['value'], value['sensitive'] == 'true')
+                outputs[f'{prefix}.{key}'] = VariableValue(value['value'], value['sensitive'])
         else:
             for key, value in values.items():
-                outputs[f'{key}'] = VariableValue(value['value'], value['sensitive'] == 'true')
+                outputs[f'{key}'] = VariableValue(value['value'], value['sensitive'])
 
         return outputs
 
