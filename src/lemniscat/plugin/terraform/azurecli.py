@@ -50,7 +50,7 @@ class AzureCli:
                         if(m.group('key').strip() == "arm_access_key"):
                             os.environ["ARM_ACCESS_KEY"] = m.group('value').strip()
                     else:
-                        log.debug(f'  {ltrace}')
+                        log.info(f'  {ltrace}')
             if(p.stderr is not None):
                 errors = p.stderr.readlines()
                 for error in errors:

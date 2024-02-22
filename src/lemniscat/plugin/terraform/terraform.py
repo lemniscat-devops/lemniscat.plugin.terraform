@@ -292,7 +292,7 @@ class Terraform(object):
             stdout = sys.stdout
 
         cmds = self.generate_cmd_string(cmd, *args, **kwargs)
-        log.debug('command: {c}'.format(c=' '.join(cmds)))
+        log.info('command: {c}'.format(c=' '.join(cmds)))
 
         working_folder = self.working_dir if self.working_dir else None
 
@@ -318,7 +318,7 @@ class Terraform(object):
                         disable_logs = True
                         
                     if(disable_logs is False):
-                        log.debug(f'  {ltrace}')
+                        log.info(f'  {ltrace}')
 
         out, err = p.communicate()
         ret_code = p.returncode
@@ -468,9 +468,9 @@ class VariableFiles(object):
 
     def create(self, variables):
         with tempfile.NamedTemporaryFile('w+t', suffix='.tfvars.json', delete=False) as temp:
-            log.debug('{0} is created'.format(temp.name))
+            log.info('{0} is created'.format(temp.name))
             self.files.append(temp)
-            log.debug(
+            log.info(
                 'variables wrote to tempfile: {0}'.format(str(variables)))
             temp.write(json.dumps(variables))
             file_name = temp.name
