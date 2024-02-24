@@ -73,24 +73,22 @@ class Action(PluginCore):
             
         return backend_config
     
-    @staticmethod
-    def set_tf_var_file(variables: dict, parameters: dict) -> str:
+    def set_tf_var_file(self, variables: dict, parameters: dict) -> str:
         # set terraform var file
         var_file = None
         if(variables.keys().__contains__('tfVarFile')):
-            var_file = variables['tfVarfile'].value
+            var_file = self.__interpret(variables['tfVarfile'].value, variables).value
         if(parameters.keys().__contains__('tfVarFile')):
-            var_file = parameters['tfVarFile']   
+            var_file = self.__interpret(parameters['tfVarFile'], variables).value 
         return var_file
     
-    @staticmethod
-    def set_tfplan_file(variables: dict, parameters: dict) -> str:
+    def set_tfplan_file(self, variables: dict, parameters: dict) -> str:
         # set terraform var file
         tfplan_file = './terrafom.tfplan'
         if(variables.keys().__contains__('tfplanFile')):
-            tfplan_file = variables['tfplanFile'].value
+            tfplan_file = self.__interpret(variables['tfplanFile'].value, variables).value
         if(parameters.keys().__contains__('tfplanFile')):
-            tfplan_file = parameters['tfplanFile']   
+            tfplan_file = self.__interpret(parameters['tfplanFile'], variables).value  
         return tfplan_file
 
     def __run_terraform(self, command: str, parameters: dict, variables: dict) -> TaskResult:
@@ -102,7 +100,8 @@ class Action(PluginCore):
             
         if(backendConfig != {}):
             result = {}
-            tf = Terraform(working_dir=parameters['tfPath'], var_file=var_file)
+            tfpath = self.__interpret(parameters['tfPath'], variables).value
+            tf = Terraform(working_dir=tfpath, var_file=var_file)
             if(command == 'init'):
                 result = tf.init(backend_config=backendConfig)
             elif(command == 'plan'):        
