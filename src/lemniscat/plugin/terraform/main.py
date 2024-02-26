@@ -26,91 +26,75 @@ class Action(PluginCore):
             version=manifest_data['version']
         )
         
-    def __interpret(self, parameterValue: str, variables: dict) -> str:
-        isSensible = False
-        if(parameterValue is None):
-            return None
-        if(isinstance(parameterValue, str)):
-            matches = re.findall(_REGEX_CAPTURE_VARIABLE, parameterValue)
-            if(len(matches) > 0):
-                for match in matches:
-                    var = str.strip(match)
-                    if(var in variables):
-                        parameterValue = parameterValue.replace(f'${{{{{match}}}}}', variables[var].value)
-                        if(variables[var].sensitive):
-                            isSensible = True
-                        self._logger.debug(f"Interpreting variable: {var} -> {variables[var]}")
-                    else:
-                        parameterValue = parameterValue.replace(f'${{{{{match}}}}}', "")
-                        self._logger.debug(f"Variable not found: {var}. Replaced by empty string.")
-        return VariableValue(parameterValue, isSensible) 
-
-    def set_backend_config(self, parameters: dict, variables: dict) -> dict:
+    def set_backend_config(self) -> dict:
         # set backend config
         backend_config = {}
         #override configuration with backend configuration
-        if(parameters.keys().__contains__('backend')):
-            if(parameters['backend'].keys().__contains__('backend_type')):
-                variables['tf.backend_type'] = self.__interpret(parameters['backend']['backend_type'], variables)
-            if(parameters['backend'].keys().__contains__('arm_access_key')):
-                variables['tf.arm_access_key'] = self.__interpret(parameters['backend']['arm_access_key'], variables)
-            if(parameters['backend'].keys().__contains__('container_name')):
-                variables['tf.container_name'] = self.__interpret(parameters['backend']['container_name'], variables)
-            if(parameters['backend'].keys().__contains__('storage_account_name')):
-                variables['tf.storage_account_name'] = self.__interpret(parameters['backend']['storage_account_name'], variables)
-            if(parameters['backend'].keys().__contains__('key')):
-                variables['tf.key'] = self.__interpret(parameters['backend']['key'], variables)
+        if(self.parameters.keys().__contains__('backend')):
+            if(self.parameters['backend'].keys().__contains__('backend_type')):
+                self.variables['tf.backend_type'] = VariableValue(self.parameters['backend']['backend_type'])
+            if(self.parameters['backend'].keys().__contains__('arm_access_key')):
+                self.variables['tf.arm_access_key'] = VariableValue(self.parameters['backend']['arm_access_key'])
+            if(self.parameters['backend'].keys().__contains__('container_name')):
+                self.variables['tf.container_name'] = VariableValue(self.parameters['backend']['container_name'])
+            if(self.parameters['backend'].keys().__contains__('storage_account_name')):
+                self.variables['tf.storage_account_name'] = VariableValue(self.parameters['backend']['storage_account_name'])
+            if(self.parameters['backend'].keys().__contains__('key')):
+                self.variables['tf.key'] = VariableValue(self.parameters['backend']['key'])
                 
         # set backend config for azure
-        if(variables['tf.backend_type'].value == 'azurerm'):
-            if(not variables.keys().__contains__('tf.arm_access_key')):
+        if(self.variables['tf.backend_type'].value == 'azurerm'):
+            if(not self.variables.keys().__contains__('tf.arm_access_key')):
                 cli = AzureCli()
-                cli.run(variables["tf.storage_account_name"].value)
+                cli.run(self.variables["tf.storage_account_name"].value)
             else:
-                os.environ["ARM_ACCESS_KEY"] = variables["tf.arm_access_key"].value
-            super().appendVariables({ "tf.arm_access_key": VariableValue(os.environ["ARM_ACCESS_KEY"], True), 'tf.storage_account_name': variables["tf.storage_account_name"], 'tf.container_name': variables["tf.container_name"], 'tf.key': variables["tf.key"] })
-            backend_config = {'storage_account_name': variables["tf.storage_account_name"].value, 'container_name': variables["tf.container_name"].value, 'key': variables["tf.key"].value}
+                os.environ["ARM_ACCESS_KEY"] = self.variables["tf.arm_access_key"].value
+            super().appendVariables({ "tf.arm_access_key": VariableValue(os.environ["ARM_ACCESS_KEY"], True), 'tf.storage_account_name': self.variables["tf.storage_account_name"], 'tf.container_name': self.variables["tf.container_name"], 'tf.key': self.variables["tf.key"] })
+            backend_config = {'storage_account_name': self.variables["tf.storage_account_name"].value, 'container_name': self.variables["tf.container_name"].value, 'key': self.variables["tf.key"].value}
             
         return backend_config
     
-    def set_tf_var_file(self, variables: dict, parameters: dict) -> str:
+    def set_tf_var_file(self) -> str:
         # set terraform var file
         var_file = None
-        if(variables.keys().__contains__('tfVarFile')):
-            var_file = self.__interpret(variables['tfVarfile'].value, variables).value
-        if(parameters.keys().__contains__('tfVarFile')):
-            var_file = self.__interpret(parameters['tfVarFile'], variables).value 
+        if(self.variables.keys().__contains__('tfVarFile')):
+            var_file = self.variables['tfVarfile'].value
+        if(self.parameters.keys().__contains__('tfVarFile')):
+            var_file = self.parameters['tfVarFile'] 
         return var_file
     
-    def set_tfplan_file(self, variables: dict, parameters: dict) -> str:
+    def set_tfplan_file(self) -> str:
         # set terraform var file
         tfplan_file = './terrafom.tfplan'
-        if(variables.keys().__contains__('tfplanFile')):
-            tfplan_file = self.__interpret(variables['tfplanFile'].value, variables).value
-        if(parameters.keys().__contains__('tfplanFile')):
-            tfplan_file = self.__interpret(parameters['tfplanFile'], variables).value  
+        if(self.variables.keys().__contains__('tfplanFile')):
+            tfplan_file = self.variables['tfplanFile'].value
+        if(self.parameters.keys().__contains__('tfplanFile')):
+            tfplan_file = self.parameters['tfplanFile']  
         return tfplan_file
 
-    def __run_terraform(self, command: str, parameters: dict, variables: dict) -> TaskResult:
+    def __run_terraform(self) -> TaskResult:
         # launch terraform command
-        backendConfig = self.set_backend_config(parameters, variables)
+        backendConfig = self.set_backend_config()
         
         # set terraform var file
-        var_file = self.set_tf_var_file(variables, parameters)              
+        var_file = self.set_tf_var_file()              
+        
+        # set terraform command    
+        command = self.parameters['action']
             
         if(backendConfig != {}):
             result = {}
-            tfpath = self.__interpret(parameters['tfPath'], variables).value
+            tfpath = self.parameters['tfPath']
             tf = Terraform(working_dir=tfpath, var_file=var_file)
             if(command == 'init'):
                 result = tf.init(backend_config=backendConfig)
             elif(command == 'plan'):        
-                result = tf.plan(out=self.set_tfplan_file(variables, parameters))
+                result = tf.plan(out=self.set_tfplan_file())
             elif(command == 'apply'):
-                result = tf.apply(dir_or_plan=self.set_tfplan_file(variables, parameters))
+                result = tf.apply(dir_or_plan=self.set_tfplan_file())
                 if(result[0] == 0):
-                    if(parameters.keys().__contains__('prefixOutput')):
-                        outputs = tf.output(prefix=parameters['prefixOutput'])
+                    if(self.parameters.keys().__contains__('prefixOutput')):
+                        outputs = tf.output(prefix=self.parameters['prefixOutput'])
                     else:
                         outputs = tf.output()
                     super().appendVariables(outputs)
@@ -136,9 +120,10 @@ class Action(PluginCore):
                 errors=[0x0001])
         
 
-    def invoke(self, parameters: dict = {}, variables: dict = {}) -> TaskResult:
-        self._logger.debug(f'Command: {parameters["action"]} -> {self.meta}')
-        task = self.__run_terraform(parameters['action'], parameters, variables)
+    def invoke(self, params: dict = {}, variables: dict = {}) -> TaskResult:
+        super().invoke(params, variables)
+        self._logger.debug(f'Command: {self.parameters["action"]} -> {self.meta}')
+        task = self.__run_terraform()
         return task
     
     def test_logger(self) -> None:
