@@ -44,7 +44,7 @@ class Action(PluginCore):
                 
         # set backend config for azure
         if(self.variables['tf.backend_type'].value == 'azurerm'):
-            if(not self.variables.keys().__contains__('tf.arm_access_key')):
+            if(not self.variables.keys().__contains__('tf.arm_access_key') or self.variables["tf.arm_access_key"].value is None or len(self.variables["tf.arm_access_key"].value) == 0):
                 cli = AzureCli()
                 cli.run(self.variables["tf.storage_account_name"].value)
             else:
