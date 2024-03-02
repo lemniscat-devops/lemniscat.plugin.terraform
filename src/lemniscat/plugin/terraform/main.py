@@ -120,8 +120,8 @@ class Action(PluginCore):
                 errors=[0x0001])
         
 
-    def invoke(self, params: dict = {}, variables: dict = {}) -> TaskResult:
-        super().invoke(params, variables)
+    def invoke(self, parameters: dict = {}, variables: dict = {}) -> TaskResult:
+        super().invoke(parameters, variables)
         self._logger.debug(f'Command: {self.parameters["action"]} -> {self.meta}')
         task = self.__run_terraform()
         return task
