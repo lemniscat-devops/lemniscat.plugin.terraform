@@ -310,15 +310,20 @@ class Terraform(object):
         if(disable_logs is False):
             while p.poll() is None:
                 line = p.stdout.readline()
+                error = p.stderr.readline()
                 if(line != b''):
                     ltrace = line.decode('utf-8').replace('\n', '')
-                    
                     # hide the outputs of terraform apply
                     if(ltrace == 'Outputs:'):
                         disable_logs = True
-                        
                     if(disable_logs is False):
                         log.info(f'  {ltrace}')
+                if(error != b''):
+                    ltrace = error.decode("utf-8").rstrip("\r\n")
+                    if(ltrace.startswith("ERROR:")):
+                        log.error(f'  {ltrace}')
+                    else:
+                        log.warning(f'  {ltrace}')
 
         out, err = p.communicate()
         ret_code = p.returncode
