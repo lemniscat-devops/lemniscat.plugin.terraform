@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 # above is for compatibility of python2.7.11
-
 import subprocess
 import os
 import sys
 import json
 import logging
 import tempfile
+import threading
 from typing import Optional
-
+from threading  import Thread
+from queue import Queue, Empty
 from lemniscat.plugin.terraform.tfstate import Tfstate
 
 from lemniscat.core.util.helpers import LogUtil
@@ -21,6 +22,15 @@ except ImportError:
     class NullHandler(logging.Handler):
         def emit(self, record):
             pass
+
+
+def enqueue_stream(stream, queue, type):
+    for line in iter(stream.readline, b''):
+        queue.put(str(type) + line.decode('utf-8').rstrip('\r\n'))
+
+def enqueue_process(process, queue):
+    process.wait()
+    queue.put('x')
 
 logging.setLoggerClass(LogUtil)
 log = logging.getLogger(__name__.replace('lemniscat.', ''))
@@ -302,34 +312,45 @@ class Terraform(object):
 
         p = subprocess.Popen(cmds, stdout=stdout, stderr=stderr,
                              cwd=working_folder, env=environ_vars)
-
+         
         synchronous = kwargs.pop('synchronous', True)
         if not synchronous:
             return p, None, None
 
         if(disable_logs is False):
-            while p.poll() is None:
-                line = p.stdout.readline()
-                error = p.stderr.readline()
-                if(line != b''):
-                    ltrace = line.decode('utf-8').replace('\n', '')
+            q = Queue()
+            to = threading.Thread(target=enqueue_stream, args=(p.stdout, q, 1))
+            te = threading.Thread(target=enqueue_stream, args=(p.stderr, q, 2))
+            tp = threading.Thread(target=enqueue_process, args=(p, q))
+            te.start()
+            to.start()
+            tp.start()
+            
+            while True:
+                line = q.get()
+                if line[0] == 'x':
+                    break
+                if line[0] == '2':  # stderr
+                    if(line[1:].startswith("ERROR:")):
+                        log.error(f'  {line[1:]}')
+                    else:
+                        log.warning(f'  {line[1:]}')
+                if line[0] == '1':
                     # hide the outputs of terraform apply
-                    if(ltrace == 'Outputs:'):
+                    if(line[1:] == 'Outputs:'):
                         disable_logs = True
                     if(disable_logs is False):
-                        log.info(f'  {ltrace}')
-                if(error != b''):
-                    ltrace = error.decode("utf-8").rstrip("\r\n")
-                    if(ltrace.startswith("ERROR:")):
-                        log.error(f'  {ltrace}')
-                    else:
-                        log.warning(f'  {ltrace}')
+                        log.info(f'  {line[1:]}')
+
+            tp.join()
+            to.join()
+            te.join()
 
         out, err = p.communicate()
         ret_code = p.returncode
-
+            
         if ret_code == 0 or ret_code == 2:
-            self.read_state_file()
+            self.read_state_file()   
         else:
             subProcessErrors = list(filter(lambda x: x != "",err.decode('utf-8').splitlines()))
             log.warn('❌ Terraform error:')
@@ -435,7 +456,7 @@ class Terraform(object):
         :return: status
         """
 
-        return self.cmd('workspace' ,'select', workspace)  
+        return self.cmd('workspace' ,'select', workspace)
 
     def create_workspace(self, workspace):
         """

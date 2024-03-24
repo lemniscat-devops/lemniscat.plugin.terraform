@@ -3,7 +3,9 @@
 
 import logging
 import os
-import subprocess, sys   
+import subprocess, sys 
+from queue import Queue
+import threading  
 from lemniscat.core.util.helpers import LogUtil
 import re
 
@@ -13,6 +15,14 @@ except ImportError:
     class NullHandler(logging.Handler):
         def emit(self, record):
             pass
+
+def enqueue_stream(stream, queue, type):
+    for line in iter(stream.readline, b''):
+        queue.put(str(type) + line.decode('utf-8').rstrip('\r\n'))
+
+def enqueue_process(process, queue):
+    process.wait()
+    queue.put('x')
 
 logging.setLoggerClass(LogUtil)
 log = logging.getLogger(__name__.replace('lemniscat.', ''))
@@ -24,26 +34,31 @@ class AzureCli:
     def cmd(self, cmds, **kwargs):
         outputVar = {}
         capture_output = kwargs.pop('capture_output', True)
-        is_env_vars_included = kwargs.pop('is_env_vars_included', False)
-        if capture_output is True:
-            stderr = subprocess.PIPE
-            stdout = subprocess.PIPE
-        else:
-            stderr = sys.stderr
-            stdout = sys.stdout
-            
-        environ_vars = {}
-        if is_env_vars_included:
-            environ_vars = os.environ.copy()
+        stderr = subprocess.PIPE
+        stdout = subprocess.PIPE
 
         p = subprocess.Popen(cmds, stdout=stdout, stderr=stderr,
-                             cwd=None)
+                             cwd=None) 
+        q = Queue()
+        to = threading.Thread(target=enqueue_stream, args=(p.stdout, q, 1))
+        te = threading.Thread(target=enqueue_stream, args=(p.stderr, q, 2))
+        tp = threading.Thread(target=enqueue_process, args=(p, q))
+        te.start()
+        to.start()
+        tp.start()
         
-        while p.poll() is None:
-            if(p.stdout is not None):
-                lines = p.stdout.readlines()
-                for line in lines:
-                    ltrace = line.decode('utf-8').rstrip('\r\n')
+        if(capture_output is True):
+            while True:
+                line = q.get()
+                if line[0] == 'x':
+                    break
+                if line[0] == '2':  # stderr
+                    if(line[1:].startswith("ERROR:")):
+                        log.error(f'  {line[1:]}')
+                    else:
+                        log.warning(f'  {line[1:]}')
+                if line[0] == '1':
+                    ltrace = line[1:]
                     m = re.match(r"^\[lemniscat\.pushvar\] (?P<key>\w+)=(?P<value>.*)", str(ltrace))
                     if(not m is None):
                         outputVar[m.group('key').strip()] = m.group('value').strip()
@@ -51,14 +66,10 @@ class AzureCli:
                             os.environ["ARM_ACCESS_KEY"] = m.group('value').strip()
                     else:
                         log.info(f'  {ltrace}')
-            if(p.stderr is not None):
-                errors = p.stderr.readlines()
-                for error in errors:
-                    ltrace = error.decode("utf-8").rstrip("\r\n")
-                    if(ltrace.startswith("ERROR:")):
-                        log.error(f'  {ltrace}')
-                    else:
-                        log.warning(f'  {ltrace}')
+
+        tp.join()
+        to.join()
+        te.join()
                           
         out, err = p.communicate()
         ret_code = p.returncode
