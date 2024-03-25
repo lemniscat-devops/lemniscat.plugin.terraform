@@ -89,5 +89,7 @@ class AzureCli:
         self.cmd(['pwsh', '-Command', f"az account set --subscription {os.environ['ARM_SUBSCRIPTION_ID']}"], capture_output=False)
         
     def run(self, storage_account_name):
+        log.info('Logging to Azure...')
         self.append_loginCommand()
-        return self.cmd(['pwsh', '-Command', f'$result = az storage account keys list -n {storage_account_name} --query "[0].value" -o tsv; Write-Host "[lemniscat.pushvar] arm_access_key=$result"'], capture_output=True)
+        log.info('Getting storage account key...')
+        return self.cmd(['pwsh', '-Command', f'$result = az storage account keys list -n {storage_account_name} --query "[0].value" -o tsv; Write-Host "[lemniscat.pushvar] tf.arm_access_key=$result"'], capture_output=True)
