@@ -63,6 +63,7 @@ class AzureCli:
                     if(not m is None):
                         outputVar[m.group('key').strip()] = m.group('value').strip()
                         if(m.group('key').strip() == "arm_access_key"):
+                            log.info('Set ARM_ACCESS_KEY environment variable.')
                             os.environ["ARM_ACCESS_KEY"] = m.group('value').strip()
                     else:
                         log.info(f'  {ltrace}')
@@ -92,4 +93,4 @@ class AzureCli:
         log.info('Logging to Azure...')
         self.append_loginCommand()
         log.info('Getting storage account key...')
-        return self.cmd(['pwsh', '-Command', f'$result = az storage account keys list -n {storage_account_name} --query "[0].value" -o tsv; Write-Host "[lemniscat.pushvar] tf.arm_access_key=$result"'], capture_output=True)
+        return self.cmd(['pwsh', '-Command', f'$result = az storage account keys list -n {storage_account_name} --query "[0].value" -o tsv; Write-Host "[lemniscat.pushvar] arm_access_key=$result"'], capture_output=True)
