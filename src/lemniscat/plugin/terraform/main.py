@@ -47,8 +47,7 @@ class Action(PluginCore):
             if(not self.variables.keys().__contains__('tf.arm_access_key') or self.variables["tf.arm_access_key"].value is None or len(self.variables["tf.arm_access_key"].value) == 0):
                 cli = AzureCli()
                 cli.run(self.variables["tf.storage_account_name"].value)
-            else:
-                os.environ["ARM_ACCESS_KEY"] = self.variables["tf.arm_access_key"].value
+            os.environ["ARM_ACCESS_KEY"] = self.variables["tf.arm_access_key"].value
             super().appendVariables({ "tf.arm_access_key": VariableValue(os.environ["ARM_ACCESS_KEY"], True), 'tf.storage_account_name': self.variables["tf.storage_account_name"], 'tf.container_name': self.variables["tf.container_name"], 'tf.key': self.variables["tf.key"] })
             backend_config = {'storage_account_name': self.variables["tf.storage_account_name"].value, 'container_name': self.variables["tf.container_name"].value, 'key': self.variables["tf.key"].value}
             
