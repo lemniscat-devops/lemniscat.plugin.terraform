@@ -93,4 +93,5 @@ class AzureCli:
         log.info('Logging to Azure...')
         self.append_loginCommand()
         log.info('Getting storage account key...')
+        self.cmd(['pwsh', '-Command', f"az configure --defaults group="], capture_output=False)
         return self.cmd(['pwsh', '-Command', f'$result = az storage account keys list -n {storage_account_name} --query "[0].value" -o tsv; Write-Host "[lemniscat.pushvar] arm_access_key=$result"'], capture_output=True)
