@@ -84,7 +84,7 @@ Then you can use the following configuration to run terraform init command.
     action: plan
     tfPath: ${{ tfPath }}
     tfVarFile: ${{ tfVarsPath }}/vars.tfvars
-    tfplanFile: ${{ tfPath }}/terrafom.tfplan
+    tfplanFile: ${{ tfPath }}/terraform.tfplan
 ```
 
 ### Run terraform apply command
@@ -97,7 +97,7 @@ Then you can use the following configuration to run terraform init command.
   parameters:
     action: apply
     tfPath: ${{ tfPath }}
-    tfplanFile: ${{ tfPath }}/terrafom.tfplan
+    tfplanFile: ${{ tfPath }}/terraform.tfplan
 ```
 
 ### Run terraform destroy command
