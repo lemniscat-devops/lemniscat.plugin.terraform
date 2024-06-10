@@ -65,7 +65,7 @@ class Action(PluginCore):
     
     def set_tfplan_file(self) -> str:
         # set terraform var file
-        tfplan_file = './terrafom.tfplan'
+        tfplan_file = './terraform.tfplan'
         if(self.variables.keys().__contains__('tfplanFile')):
             tfplan_file = self.variables['tfplanFile'].value
         if(self.parameters.keys().__contains__('tfplanFile')):
