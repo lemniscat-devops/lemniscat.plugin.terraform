@@ -9,6 +9,7 @@ from lemniscat.core.contract.engine_contract import PluginCore
 from lemniscat.core.model.models import Meta, TaskResult, VariableValue
 from lemniscat.core.util.helpers import FileSystem, LogUtil
 from lemniscat.plugin.terraform.azurecli import AzureCli
+from lemniscat.plugin.terraform.awscli import AwsCli
 
 from lemniscat.plugin.terraform.terraform import Terraform
 
