@@ -40,12 +40,6 @@ class Action(PluginCore):
                 self.variables['tf.container_name'] = VariableValue(self.parameters['backend']['container_name'])
             if(self.parameters['backend'].keys().__contains__('storage_account_name')):
                 self.variables['tf.storage_account_name'] = VariableValue(self.parameters['backend']['storage_account_name'])
-            if(self.parameters['backend'].keys().__contains__('aws_access_key_id')):
-                self.variables['tf.aws_access_key_id'] = VariableValue(self.parameters['backend']['aws_access_key_id'])
-            if(self.parameters['backend'].keys().__contains__('bucket')):
-                self.variables['tf.bucket'] = VariableValue(self.parameters['backend']['bucket'])
-            if(self.parameters['backend'].keys().__contains__('region')):
-                self.variables['tf.region'] = VariableValue(self.parameters['backend']['region'])
             if(self.parameters['backend'].keys().__contains__('key')):
                 self.variables['tf.key'] = VariableValue(self.parameters['backend']['key'])
                 
@@ -58,16 +52,20 @@ class Action(PluginCore):
                 os.environ["ARM_ACCESS_KEY"] = self.variables["tf.arm_access_key"].value
             super().appendVariables({ "tf.arm_access_key": VariableValue(os.environ["ARM_ACCESS_KEY"], True), 'tf.storage_account_name': self.variables["tf.storage_account_name"], 'tf.container_name': self.variables["tf.container_name"], 'tf.key': self.variables["tf.key"] })
             backend_config = {'storage_account_name': self.variables["tf.storage_account_name"].value, 'container_name': self.variables["tf.container_name"].value, 'key': self.variables["tf.key"].value}
-
-        # set backend config for aws
-        if(self.variables['tf.backend_type'].value == 's3'):
-            if(not self.variables.keys().__contains__('tf.aws_access_key_id') or self.variables["tf.aws_access_key_id"].value is None or len(self.variables["tf.aws_access_key_id"].value) == 0):
+        # set backend config for s3
+        elif(self.variables['tf.backend_type'].value == 's3'):
+            if(os.environ.get('AWS_SESSION_TOKEN') is None):
                 cli = AwsCli()
-                cli.run(self.variables["tf.bucket"].value)
-            else:
-                os.environ["AWS_ACCESS_KEY_ID"] = self.variables["tf.aws_access_key_id"].value
-            super().appendVariables({ "tf.aws_access_key_id": VariableValue(os.environ["AWS_ACCESS_KEY_ID"], True), 'tf.bucket': self.variables["tf.bucket"], 'tf.region': self.variables["tf.region"], 'tf.key': self.variables["tf.key"] })
-            backend_config = {'bucket': self.variables["tf.bucket"].value, 'region': self.variables["tf.region"].value, 'key': self.variables["tf.key"].value}
+                cli.run()
+            if(not self.variables.keys().__contains__('tf.bucket') or self.variables["tf.bucket"].value is None or len(self.variables["tf.bucket"].value) == 0):
+                self._logger.error(f'No bucket found in backend configuration')
+                return backend_config
+            if(not self.variables.keys().__contains__('tf.region') or self.variables["tf.region"].value is None or len(self.variables["tf.region"].value) == 0):
+                self._logger.error(f'No region found in backend configuration')
+                return backend_config
+    
+            backend_config = {'bucket': self.variables["tf.bucket"].value, 'key': self.variables["tf.key"].value, 'region': self.variables["tf.region"].value}
+
 
         return backend_config
     

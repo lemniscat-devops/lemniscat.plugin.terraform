@@ -27,6 +27,7 @@ def enqueue_process(process, queue):
 logging.setLoggerClass(LogUtil)
 log = logging.getLogger(__name__.replace('lemniscat.', ''))
 
+
 class AwsCli:
     def __init__(self):
         pass
@@ -59,14 +60,7 @@ class AwsCli:
                         log.warning(f'  {line[1:]}')
                 if line[0] == '1':
                     ltrace = line[1:]
-                    m = re.match(r"^\[lemniscat\.pushvar\] (?P<key>\w+)=(?P<value>.*)", str(ltrace))
-                    if(not m is None):
-                        outputVar[m.group('key').strip()] = m.group('value').strip()
-                        if(m.group('key').strip() == "arm_access_key"):
-                            log.info('Set ARM_ACCESS_KEY environment variable.')
-                            os.environ["ARM_ACCESS_KEY"] = m.group('value').strip()
-                    else:
-                        log.info(f'  {ltrace}')
+                    log.info(f'  {ltrace}')
 
         tp.join()
         to.join()
@@ -85,13 +79,13 @@ class AwsCli:
         return ret_code, out, err, outputVar
     
     def append_loginCommand(self):
-        self.cmd(['pwsh', '-Command', "az config unset core.allow_broker"], capture_output=False)
-        self.cmd(['pwsh', '-Command', f"az login --service-principal -u {os.environ['ARM_CLIENT_ID']} -p {os.environ['ARM_CLIENT_SECRET']} --tenant {os.environ['ARM_TENANT_ID']}"], capture_output=False)
-        self.cmd(['pwsh', '-Command', f"az account set --subscription {os.environ['ARM_SUBSCRIPTION_ID']}"], capture_output=False)
+        self.cmd(['pwsh', '-Command', f"aws configure set aws_access_key_id {os.environ['AWS_ACCESS_KEY_ID']}"], capture_output=True)
+        self.cmd(['pwsh', '-Command', f"aws configure set aws_secret_access_key {os.environ['AWS_SECRET_ACCESS_KEY']}"], capture_output=True)
+        self.cmd(['pwsh', '-Command', f"aws configure set region {os.environ['AWS_DEFAULT_REGION']}"], capture_output=True)
+        self.cmd(['pwsh', '-Command', f"aws sts get-session-token --duration-seconds 28800"], capture_output=True)
         
-    def run(self, storage_account_name):
-        log.info('Logging to Azure...')
+    def run(self):
+        log.info('Logging to AWS...')
         self.append_loginCommand()
-        log.info('Getting storage account key...')
-        self.cmd(['pwsh', '-Command', f"az configure --defaults group="], capture_output=False)
-        return self.cmd(['pwsh', '-Command', f'$result = az storage account keys list -n {storage_account_name} --query "[0].value" -o tsv; Write-Host "[lemniscat.pushvar] arm_access_key=$result"'], capture_output=True)
+        log.info('Logged to AWS.')
+
