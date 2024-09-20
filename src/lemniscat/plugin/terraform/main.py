@@ -54,9 +54,6 @@ class Action(PluginCore):
             backend_config = {'storage_account_name': self.variables["tf.storage_account_name"].value, 'container_name': self.variables["tf.container_name"].value, 'key': self.variables["tf.key"].value}
         # set backend config for s3
         elif(self.variables['tf.backend_type'].value == 's3'):
-            if(os.environ.get('AWS_SESSION_TOKEN') is None):
-                cli = AwsCli()
-                cli.run()
             if(not self.variables.keys().__contains__('tf.bucket') or self.variables["tf.bucket"].value is None or len(self.variables["tf.bucket"].value) == 0):
                 self._logger.error(f'No bucket found in backend configuration')
                 return backend_config
