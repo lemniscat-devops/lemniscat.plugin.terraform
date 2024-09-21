@@ -9,7 +9,6 @@ from lemniscat.core.contract.engine_contract import PluginCore
 from lemniscat.core.model.models import Meta, TaskResult, VariableValue
 from lemniscat.core.util.helpers import FileSystem, LogUtil
 from lemniscat.plugin.terraform.azurecli import AzureCli
-from lemniscat.plugin.terraform.awscli import AwsCli
 
 from lemniscat.plugin.terraform.terraform import Terraform
 
@@ -45,7 +44,7 @@ class Action(PluginCore):
             if(self.parameters['backend'].keys().__contains__('storage_account_name')):
                 self.variables['tf.storage_account_name'] = VariableValue(self.parameters['backend']['storage_account_name'])
             
-            # set backend config for s3
+            # set backend config for AWS s3
             if(self.parameters['backend'].keys().__contains__('bucket')):
                 self.variables['tf.bucket'] = VariableValue(self.parameters['backend']['bucket'])
             if(self.parameters['backend'].keys().__contains__('region')):
@@ -65,8 +64,8 @@ class Action(PluginCore):
             super().appendVariables({ "tf.arm_access_key": VariableValue(os.environ["ARM_ACCESS_KEY"], True), 'tf.storage_account_name': self.variables["tf.storage_account_name"], 'tf.container_name': self.variables["tf.container_name"], 'tf.key': self.variables["tf.key"] })
             backend_config = {'storage_account_name': self.variables["tf.storage_account_name"].value, 'container_name': self.variables["tf.container_name"].value, 'key': self.variables["tf.key"].value}
         
-        # set backend config for s3
-        elif(self.variables['tf.backend_type'].value == 's3'):
+        # set backend config for AWS s3
+        elif(self.variables['tf.backend_type'].value == 'awss3'):
             if(not self.variables.keys().__contains__('tf.bucket') or self.variables["tf.bucket"].value is None or len(self.variables["tf.bucket"].value) == 0):
                 self._logger.error(f'No bucket found in backend configuration')
                 return backend_config

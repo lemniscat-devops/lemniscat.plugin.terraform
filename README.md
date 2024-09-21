@@ -7,7 +7,7 @@ This plugin provides a terraform plugin for lemniscat. It allows you to run terr
 
 > [!NOTE] 
 > This plugin allow only for the moment :
-> - Azure (with staorage account backend)
+> - Azure (with storage account backend)
 > - Aws (with s3 backend)
 
 ## Usage
@@ -52,7 +52,7 @@ requirements:
     action: init
     tfPath: ${{ tfPath }}
     backend:
-      backend_type: s3
+      backend_type: awss3
       bucket: ${{ bucket }}
       region: ${{ aws_region }}
       aws_access_key: ${{ aws_access_key }}
@@ -115,7 +115,7 @@ Then you can use the following configuration to run terraform init command.
     action: init
     tfPath: ${{ tfPath }}
     backend:
-      backend_type: s3
+      backend_type: awss3
       bucket: ${{ bucket }}
       region: ${{ region }}
       key: terraform.tfstate
@@ -175,14 +175,14 @@ Then you can use the following configuration to run terraform init command.
 
 ### Backend
 
-- `backend_type` : The type of the backend. It can be `azurerm` or `s3` for the moment. Must be provided if `tf.backend_type` isn't in the lemniscat bag of variables.
+- `backend_type` : The type of the backend. It can be `azurerm` or `awss3` for the moment. Must be provided if `tf.backend_type` isn't in the lemniscat bag of variables.
 - `storage_account_name` : The name of the storage account. Only required if `backend_type` is `azurerm`. Must be provided if `tf.storage_account_name` isn't in the lemniscat bag of variables.
 - `container_name` : The name of the container. Only required if `backend_type` is `azurerm`. Must be provided if `tf.container_name` isn't in the lemniscat bag of variables.
 - `arm_access_key` : The access key of the storage account. Only required if `backend_type` is `azurerm`. Must be provided if `tf.arm_access_key` isn't in the lemniscat bag of variables or if environment variables `ARM_SUBSCRIPTION_ID`, `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET` and `ARM_TENANT_ID` are not set.
-- `bucket` : The name of the bucket. Only required if `backend_type` is `s3`. Must be provided if `tf.bucket` isn't in the lemniscat bag of variables.
-- `region` : The region of the bucket. Only required if `backend_type` is `s3`. Must be provided if `tf.region` isn't in the lemniscat bag of variables.
-- `aws_access_key` : The access key of the user. Only required if `backend_type` is `s3`. Must be provided if `tf.aws_access_key` isn't in the lemniscat bag of variables or if environment variable `AWS_ACCESS_KEY_ID` is not set.
-- `aws_secret_key` : The secret key of the user. Only required if `backend_type` is `s3`. Must be provided if `tf.aws_secret_key` isn't in the lemniscat bag of variables or if environment variable `AWS_SECRET_ACCESS_KEY` is not set.
+- `bucket` : The name of the bucket. Only required if `backend_type` is `awss3`. Must be provided if `tf.bucket` isn't in the lemniscat bag of variables.
+- `region` : The region of the bucket. Only required if `backend_type` is `awss3`. Must be provided if `tf.region` isn't in the lemniscat bag of variables.
+- `aws_access_key` : The access key of the user. Only required if `backend_type` is `awss3`. Must be provided if `tf.aws_access_key` isn't in the lemniscat bag of variables or if environment variable `AWS_ACCESS_KEY_ID` is not set.
+- `aws_secret_key` : The secret key of the user. Only required if `backend_type` is `awss3`. Must be provided if `tf.aws_secret_key` isn't in the lemniscat bag of variables or if environment variable `AWS_SECRET_ACCESS_KEY` is not set.
 - `key` : The name of the state file. Must be provided if `tf.key` isn't in the lemniscat bag of variables.
 
 ## Outputs
