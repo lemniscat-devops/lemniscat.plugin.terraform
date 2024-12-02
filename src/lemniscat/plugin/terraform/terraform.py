@@ -197,6 +197,7 @@ class Terraform(object):
         options['backend'] = backend
         options = self._generate_default_options(options)
         args = self._generate_default_args(dir_or_plan)
+        self.cmd('version')
         return self.cmd('init', *args, **options)
 
     def generate_cmd_string(self, cmd, *args, **kwargs):
